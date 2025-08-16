@@ -10,7 +10,10 @@ const stripe = require("stripe")(process.env.PAYMENT_SECRET_KEY);
 // Middlewares
 app.use(cors({
   // origin: 'http://localhost:5173',  
-  origin: 'https://gleaming-alpaca-00df2d.netlify.app',  
+  origin:  [
+    'http://localhost:5173',  // local dev
+    // 'https://gleaming-alpaca-00df2d.netlify.app' // deployed site
+  ], 
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 //   credentials: true
@@ -126,6 +129,46 @@ app.post('/jwt', async (req, res) => {
 });
 
 
+//  recommendations 
+
+app.get("/recommendations", async (req, res) => {
+  try {
+    const budget = parseFloat(req.query.budget);
+    if (!budget) return res.status(400).json({ error: "Budget is required" });
+
+    
+    const products = await productCollection.find({ status: "approved" }).toArray();
+
+    const productsWithLatestPrice = products.map((prod) => {
+      const latestPriceObj = prod.prices.reduce((a, b) =>
+        new Date(a.date) > new Date(b.date) ? a : b
+      );
+      return {
+        _id: prod._id,
+        itemName: prod.itemName,
+        marketName: prod.marketName,
+        image: prod.image,
+        price: Number(latestPriceObj.price), // ensure it's a number
+      };
+    });
+
+    productsWithLatestPrice.sort((a, b) => a.price - b.price);
+
+    let total = 0;
+    const affordableItems = [];
+    for (let item of productsWithLatestPrice) {
+      if (total + item.price <= budget) {
+        affordableItems.push(item);
+        total += item.price;
+      }
+    }
+
+    res.json({ budget, total, items: affordableItems });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
 
 // approved producst 
 

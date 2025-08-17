@@ -148,7 +148,7 @@ app.get("/recommendations", async (req, res) => {
         itemName: prod.itemName,
         marketName: prod.marketName,
         image: prod.image,
-        price: Number(latestPriceObj.price), // ensure it's a number
+        price: Number(latestPriceObj.price), 
       };
     });
 
@@ -315,6 +315,9 @@ app.post('/users', async (req, res) => {
       email: user.email,
       photoURL: user.photoURL || '', 
       role: 'user',                  
+      contactNumber: user.contactNumber || 'N/A',
+      address: user.address || 'N/A',
+      bio: user.bio || 'N/A',
       createdAt: new Date(),         
     };
 
@@ -328,7 +331,50 @@ app.post('/users', async (req, res) => {
 app.get('/users/:email', async (req, res) => {
   const email = req.params.email;
   const user = await usersCollection.findOne({ email });
-  res.send(user);
+
+  
+  const completeUser = {
+    name: user.name || 'Unknown',
+    email: user.email,
+    photoURL: user.photoURL || '',
+    role: user.role || 'user',
+    contactNumber: user.contactNumber || 'N/A',
+    address: user.address || 'N/A',
+    bio: user.bio || 'N/A',
+    createdAt: user.createdAt || new Date(),
+  };
+
+  res.send(completeUser);
+});
+// PATCH /users/:email
+app.patch('/users/:email', async (req, res) => {
+  const email = req.params.email;
+  const updatedData = req.body;
+
+  try {
+    const updateFields = {
+      name: updatedData.name,
+      photoURL: updatedData.photoURL,
+      contactNumber: updatedData.contactNumber,
+      address: updatedData.address,
+      bio: updatedData.bio,
+      updatedAt: new Date(),
+    };
+
+    const result = await usersCollection.updateOne(
+      { email },
+      { $set: updateFields }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).send({ message: "User not found" });
+    }
+
+    const updatedUser = await usersCollection.findOne({ email });
+    res.send(updatedUser);
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
 });
 
 
@@ -817,7 +863,15 @@ app.post("/payments",verifyJWT, async (req, res) => {
   }
 });
 
-
+app.get("/payments", verifyJWT, async (req, res) => {
+  try {
+    const payments = await paymentsCollection.find().toArray();
+    res.send(payments);
+  } catch (error) {
+    console.error("Error fetching payments:", error.message);
+    res.status(500).send({ error: error.message });
+  }
+});
 // my orders 
 
 app.get('/payments/my-orders',verifyJWT,verifyUser, async (req, res) => {
@@ -836,6 +890,32 @@ app.get('/payments/my-orders',verifyJWT,verifyUser, async (req, res) => {
   } catch (error) {
     console.error('Error fetching user orders:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+// Get payments for a specific user
+app.get("/payments/user/:email", async (req, res) => {
+  const email = req.params.email;
+  try {
+    const payments = await paymentsCollection.find({ userEmail: email }).toArray();
+    res.send(payments);
+  } catch (err) {
+    res.status(500).send({ message: "Failed to fetch payments" });
+  }
+});
+// Get all payments received by a vendor
+app.get("/payments/vendor/:email", verifyJWT, async (req, res) => {
+  const vendorEmail = req.params.email;
+
+  try {
+    const payments = await paymentsCollection
+      .find({ vendorEmail }) // filter payments for this vendor
+      .sort({ createdAt: -1 }) // optional: sort by most recent
+      .toArray();
+
+    res.send(payments);
+  } catch (error) {
+    console.error("Error fetching vendor payments:", error.message);
+    res.status(500).send({ error: error.message });
   }
 });
 

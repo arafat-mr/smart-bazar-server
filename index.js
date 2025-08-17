@@ -8,16 +8,19 @@ const port = process.env.PORT || 3000;
 dotenv.config();
 const stripe = require("stripe")(process.env.PAYMENT_SECRET_KEY);
 // Middlewares
-app.use(cors({
-  // origin: 'http://localhost:5173',  
-  origin:  [
-    'http://localhost:5173',  // local dev
-    // 'https://gleaming-alpaca-00df2d.netlify.app' // deployed site
-  ], 
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-//   credentials: true
-}))
+app.use(cors())
+  
+//   cors({
+//   // origin: 'http://localhost:5173',  
+//   origin:  [
+//     'http://localhost:5173',  // local dev/
+//     'https://gleaming-alpaca-00df2d.netlify.app' // deployed site
+//   ], 
+//   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+//   allowedHeaders: ['Content-Type', 'Authorization'],
+//   // credentials: true
+// })
+
 
 app.use(express.json());  
 ///// connect t
@@ -50,7 +53,7 @@ const paymentsCollection=client.db('smartBazarDB').collection('payments')
 async function run() {
   try {
    
-    await client.connect();
+    // await client.connect();
 
 
 
@@ -593,7 +596,7 @@ app.get("/price-trend/:productId",verifyJWT, async (req, res) => {
 
 // get products by vendor 
 
-app.get('/products/vendor/:email',verifyJWT,verifyVendor, async (req, res) => {
+app.get('/products/vendor/:email',verifyJWT,async (req, res) => {
   const email = req.params.email;
   const products = await productCollection.find({ vendorEmail: email }).sort({ createdAt: -1 }).toArray();
   res.send(products);
@@ -668,7 +671,7 @@ app.post('/advertisements',verifyJWT,verifyVendor, async (req, res) => {
 });
 
  // Get all ads by vendor email
-  app.get("/advertisements",verifyJWT,verifyVendor, async (req, res) => {
+  app.get("/advertisements",verifyJWT, async (req, res) => {
   try {
     const vendorEmail = req.query.vendorEmail;  // read from query string
     if (!vendorEmail) {

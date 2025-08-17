@@ -1,6 +1,6 @@
 🛒 Smart Bazar Backend
 🚀 A modern REST API for the Smart Bazar platform — enabling admins, vendors, and buyers to connect in a smart agricultural market.
-🌐 Live Server: https://smart-bazar-server.vercel.app
+🌐 Live Server: https://smart-bazar-server-new.vercel.app
 
 📌 Features
 ✅ Role-Based Authentication (admin, vendor, user)
